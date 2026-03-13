@@ -21,8 +21,31 @@ npm install
 
 ## API
 
-- `GET /health` – health check endpoint
+### Health
+
+- `GET /health` – health check (database connection)
+
+### Tenants
+
+- `POST /tenants` – create tenant
+- `GET /tenants/:slug` – get tenant by slug
+
+### Resources
+
+- `GET /tenants/:tenantId/resources` – list resources (staff)
+- `POST /tenants/:tenantId/resources` – create resource (creates Resource + User for staff login)
+
+### Services
+
+- `GET /tenants/:tenantId/services` – list services
+- `POST /tenants/:tenantId/services` – create service
+
+### Resource Services
+
+- `GET /tenants/:tenantId/resources/:resourceId/services` – list services assigned to resource (with prices)
+- `POST /tenants/:tenantId/resources/:resourceId/services` – assign service to resource (serviceId, price, durationOverride?)
 
 ## Tech stack
 
 - Node.js, Express, TypeScript
+- Prisma, PostgreSQL
