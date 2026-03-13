@@ -1,0 +1,23 @@
+{
+  "type": "module",
+  "name": "terminko-server",
+  "version": "1.0.0",
+  "description": "This is a server which will communicate with terminko_db and will server to the terminko-mobile and terminko-manger",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/xarambash/terminko-server.git"
+  },
+  "author": "Stefan Rakonjac",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/xarambash/terminko-server/issues"
+  },
+  "homepage": "https://github.com/xarambash/terminko-server#readme"
+}
