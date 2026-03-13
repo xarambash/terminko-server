@@ -1,0 +1,198 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// --- TENANT ---
+model Tenant {
+  id              String   @id @default(uuid())
+  name            String
+  slug            String   @unique
+  type            String
+  timezone        String
+  currency        String
+  defaultLanguage String   @map("default_language")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  supportedLanguages TenantSupportedLanguage[]
+  users               User[]
+  resources           Resource[]
+  services            Service[]
+  guests              Guest[]
+  appointments        Appointment[]
+
+  @@map("tenants")
+}
+
+model TenantSupportedLanguage {
+  id          String   @id @default(uuid())
+  tenantId    String   @map("tenant_id")
+  languageCode String  @map("language_code")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@map("tenant_supported_languages")
+}
+
+// --- USER ---
+model User {
+  id           String    @id @default(uuid())
+  tenantId     String?   @map("tenant_id") // null for Super-Admin
+  resourceId   String?   @unique @map("resource_id")
+  email        String
+  passwordHash String   @map("password_hash")
+  firstName   String   @map("first_name")
+  lastName    String   @map("last_name")
+  role        String
+  lastLoginAt DateTime? @map("last_login_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  tenant   Tenant?   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  resource Resource? @relation(fields: [resourceId], references: [id], onDelete: SetNull)
+
+  @@map("users")
+}
+
+// --- RESOURCE ---
+model Resource {
+  id             String   @id @default(uuid())
+  tenantId       String   @map("tenant_id")
+  firstName      String   @map("first_name")
+  lastName       String   @map("last_name")
+  profilePicture String?  @map("profile_picture")
+  email          String?
+  phone          String?  // was integer in doc - must be String for phone numbers
+  isActive       Boolean  @default(true) @map("is_active")
+  displayOrder   Int      @default(0) @map("display_order")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user            User?
+  workingHours    ResourceWorkingHour[]
+  freeDays        ResourceFreeDay[]
+  resourceServices ResourceService[]
+  appointments    Appointment[]
+
+  @@map("resources")
+}
+
+model ResourceWorkingHour {
+  id         String   @id @default(uuid())
+  resourceId String   @map("resource_id")
+  dayOfWeek  Int      @map("day_of_week") // 0-6 (Sunday-Saturday)
+  startTime  String   @map("start_time")   // "09:00" - PostgreSQL time stored as string
+  endTime    String   @map("end_time")    // "18:00"
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  resource Resource @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+
+  @@map("resource_working_hours")
+}
+
+model ResourceFreeDay {
+  id         String   @id @default(uuid())
+  resourceId String   @map("resource_id")
+  date       DateTime @db.Date
+  reason     String?
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  resource Resource @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+
+  @@map("resource_free_days")
+}
+
+// --- SERVICE ---
+model Service {
+  id              String   @id @default(uuid())
+  tenantId        String   @map("tenant_id")
+  name            String
+  durationMinutes Int      @map("duration_minutes")
+  description     String?
+  isActive        Boolean  @default(true) @map("is_active")
+  sortOrder       Int      @default(0) @map("sort_order")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  tenant           Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  resourceServices ResourceService[]
+  appointments      Appointment[]
+
+  @@map("services")
+}
+
+model ResourceService {
+  id              String   @id @default(uuid())
+  resourceId      String   @map("resource_id")
+  serviceId       String   @map("service_id")
+  price           Decimal  @db.Decimal(10, 2)
+  durationOverride Int?    @map("duration_override")
+  isActive        Boolean  @default(true) @map("is_active")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  resource Resource @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+  service  Service  @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@unique([resourceId, serviceId])
+  @@map("resource_services")
+}
+
+model Guest {
+  id            String    @id @default(uuid())
+  tenantId      String   @map("tenant_id")
+  name          String
+  email         String?
+  phone         String?
+  notes         String?
+  penaltyPoints Int      @default(0) @map("penalty_points")
+  isBanned      Boolean  @default(false) @map("is_banned")
+  bannedUntil   DateTime? @db.Date @map("banned_until")
+  bannedReason  String?  @map("banned_reason")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  tenant       Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  appointments Appointment[]
+
+  @@map("guests")
+}
+
+// --- APPOINTMENT ---
+model Appointment {
+  id                String    @id @default(uuid())
+  tenantId          String   @map("tenant_id")
+  resourceId        String   @map("resource_id")
+  serviceId        String   @map("service_id")
+  guestId           String   @map("guest_id")
+  startAt           DateTime @map("start_at")
+  endAt             DateTime @map("end_at")
+  status            String   // e.g. "scheduled", "completed", "canceled"
+  priceAtBooking    Decimal? @map("price_at_booking") @db.Decimal(10, 2)
+  notes             String?
+  canceledAt       DateTime? @map("canceled_at")
+  cancellationReason String? @map("cancelation_reason")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  resource Resource @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+  service  Service  @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  guest    Guest    @relation(fields: [guestId], references: [id], onDelete: Cascade)
+
+  @@map("appointments")
+}

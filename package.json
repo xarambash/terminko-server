@@ -19,5 +19,13 @@
   "bugs": {
     "url": "https://github.com/xarambash/terminko-server/issues"
   },
-  "homepage": "https://github.com/xarambash/terminko-server#readme"
+  "homepage": "https://github.com/xarambash/terminko-server#readme",
+  "dependencies": {
+    "@prisma/client": "^6.19.2",
+    "express": "^5.2.1",
+    "prisma": "^6.19.2"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6"
+  }
 }
