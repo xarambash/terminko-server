@@ -10,9 +10,9 @@ import { getTenantId } from '../utils/requestUtils.js';
 const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
 
 const createAppointmentSchema = z.object({
-  resourceId: z.uuid(),
-  serviceId: z.uuid(),
-  guestId: z.uuid(),
+  resourceId: z.string().uuid(),
+  serviceId: z.string().uuid(),
+  guestId: z.string().uuid(),
   startAt: z.coerce.date(),
   endAt: z.coerce.date(),
   priceAtBooking: z.number().nonnegative().optional(),
@@ -26,11 +26,20 @@ export async function getAppointmentsHandler(req: Request, res: Response) {
     return;
   }
 
-  const resourceId = typeof req.query.resourceId === 'string' ? req.query.resourceId : undefined;
+  let resourceId = typeof req.query.resourceId === 'string' ? req.query.resourceId : undefined;
   const guestId = typeof req.query.guestId === 'string' ? req.query.guestId : undefined;
   const date = typeof req.query.date === 'string' && dateRegex.test(req.query.date)
     ? req.query.date
     : undefined;
+
+  if ((resourceId || date) && !req.user) {
+    res.status(401).json({ error: 'Authentication required for resource or date filter' });
+    return;
+  }
+
+  if (req.user?.role === 'staff') {
+    resourceId = req.user.resourceId ?? undefined;
+  }
 
   try {
     const filters: GetAppointmentsFilters = { tenantId };

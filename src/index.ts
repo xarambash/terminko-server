@@ -1,6 +1,13 @@
 import 'dotenv/config';
 import express from 'express';
 import { prisma } from './db.js';
+import {
+  optionalAuth,
+  requireAuth,
+  requireOwner,
+  requireOwnerOrOwnResource,
+  requireTenantAccess,
+} from './middleware/authMiddleware.js';
 import tenantsRoutes from './routes/tenantsRoutes.js';
 import resourcesRoutes from './routes/resourcesRoutes.js';
 import resourceServicesRoutes from './routes/resourceServicesRoutes.js';
@@ -9,6 +16,7 @@ import resourceFreeDaysRoutes from './routes/resourceFreeDaysRoutes.js';
 import servicesRoutes from './routes/servicesRoutes.js';
 import guestsRoutes from './routes/guestsRoutes.js';
 import appointmentsRoutes from './routes/appointmentsRoutes.js';
+import authRoutes from './routes/authRoutes.js';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -25,13 +33,45 @@ app.get('/health', async (req, res) => {
   }
 });
 
-app.use('/tenants/:tenantId/resources/:resourceId/services', resourceServicesRoutes);
-app.use('/tenants/:tenantId/resources/:resourceId/working-hours', resourceWorkingHoursRoutes);
-app.use('/tenants/:tenantId/resources/:resourceId/free-days', resourceFreeDaysRoutes);
-app.use('/tenants/:tenantId/resources', resourcesRoutes);
-app.use('/tenants/:tenantId/services', servicesRoutes);
-app.use('/tenants/:tenantId/guests', guestsRoutes);
-app.use('/tenants/:tenantId/appointments', appointmentsRoutes);
+app.use('/auth', authRoutes);
+
+app.use(
+  '/tenants/:tenantId/appointments',
+  (req, res, next) => (req.method === 'POST' ? next() : optionalAuth(req, res, next)),
+  (req, res, next) => (req.user ? requireTenantAccess(req, res, next) : next()),
+  appointmentsRoutes
+);
+
+app.use(
+  '/tenants/:tenantId/resources/:resourceId/services',
+  requireAuth,
+  requireTenantAccess,
+  requireOwnerOrOwnResource,
+  resourceServicesRoutes
+);
+app.use(
+  '/tenants/:tenantId/resources/:resourceId/working-hours',
+  requireAuth,
+  requireTenantAccess,
+  requireOwnerOrOwnResource,
+  resourceWorkingHoursRoutes
+);
+app.use(
+  '/tenants/:tenantId/resources/:resourceId/free-days',
+  requireAuth,
+  requireTenantAccess,
+  requireOwnerOrOwnResource,
+  resourceFreeDaysRoutes
+);
+app.use(
+  '/tenants/:tenantId/resources',
+  requireAuth,
+  requireTenantAccess,
+  (req, res, next) => (req.method === 'POST' ? requireOwner(req, res, next) : next()),
+  resourcesRoutes
+);
+app.use('/tenants/:tenantId/services', requireAuth, requireTenantAccess, servicesRoutes);
+app.use('/tenants/:tenantId/guests', requireAuth, requireTenantAccess, guestsRoutes);
 app.use('/tenants', tenantsRoutes);
 
 const server = app.listen(PORT, () => {
