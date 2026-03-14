@@ -1,6 +1,8 @@
 # terminko-server
 
-Backend server for Terminko – appointment booking (hair salon, nail salon, etc.). Communicates with terminko_db and serves terminko-mobile and terminko-manager.
+Backend API for Terminko – a scheduling app for small businesses (salons, barbers, dentists). Supports multiple tenants with isolated data. Serves the guest mobile app (booking flow) and the owner/staff web app (management).
+
+**Users:** Guests book without login; Owners and Staff log in to manage appointments, resources, and services.
 
 ## Requirements
 
@@ -32,45 +34,59 @@ npm install
 
 Protected routes require `Authorization: Bearer <token>` header.
 
+### Access by role
+
+| Route | Guest | Staff | Owner |
+|-------|-------|-------|-------|
+| GET resources | ✓ | — | ✓ |
+| POST resources | — | — | ✓ |
+| GET resource services | ✓ | — | ✓ |
+| POST resource services | — | — | ✓ |
+| Working hours, Free days | — | — | ✓ |
+| Services, Guests | — | — | ✓ |
+| GET appointments (guestId) | ✓ | — | — |
+| GET appointments (resourceId/date) | — | ✓ (own) | ✓ (all) |
+| POST appointments | ✓ | — | — |
+
 ### Tenants
 
-- `POST /tenants` – create tenant
-- `GET /tenants/:slug` – get tenant by slug
+- `POST /tenants` – create tenant (MVP: public; production: Super Admin only)
+- `GET /tenants/:slug` – get tenant by slug (public)
 
-### Resources (auth required; POST requires owner)
+### Resources
 
-- `GET /tenants/:tenantId/resources` – list resources
-- `POST /tenants/:tenantId/resources` – create resource (creates Resource + User for staff login)
+- `GET /tenants/:tenantId/resources` – list resources (public, for guest booking)
+- `POST /tenants/:tenantId/resources` – create resource (Owner only; creates Resource + User for staff login)
 
-### Services (auth required)
+### Services
 
-- `GET /tenants/:tenantId/services` – list services
-- `POST /tenants/:tenantId/services` – create service
+- `GET /tenants/:tenantId/services` – list services (Owner only)
+- `POST /tenants/:tenantId/services` – create service (Owner only)
 
-### Resource Services (auth required; owner or own resource)
+### Resource Services
 
-- `GET /tenants/:tenantId/resources/:resourceId/services` – list services assigned to resource (with prices)
-- `POST /tenants/:tenantId/resources/:resourceId/services` – assign service to resource (serviceId, price, durationOverride?)
+- `GET /tenants/:tenantId/resources/:resourceId/services` – list services assigned to resource with prices (public, for guest booking)
+- `POST /tenants/:tenantId/resources/:resourceId/services` – assign service to resource (Owner only; body: serviceId, price, durationOverride?)
 
-### Resource Working Hours (auth required; owner or own resource)
+### Resource Working Hours
 
-- `GET /tenants/:tenantId/resources/:resourceId/working-hours` – list working hours for resource
-- `POST /tenants/:tenantId/resources/:resourceId/working-hours` – add working hour (dayOfWeek 0–6, startTime, endTime as "HH:MM")
+- `GET /tenants/:tenantId/resources/:resourceId/working-hours` – list working hours (Owner only)
+- `POST /tenants/:tenantId/resources/:resourceId/working-hours` – add working hour (Owner only; body: dayOfWeek 0–6, startTime, endTime as "HH:MM")
 
-### Resource Free Days (auth required; owner or own resource)
+### Resource Free Days
 
-- `GET /tenants/:tenantId/resources/:resourceId/free-days` – list free days for resource
-- `POST /tenants/:tenantId/resources/:resourceId/free-days` – add free day (date as "YYYY-MM-DD", reason?)
+- `GET /tenants/:tenantId/resources/:resourceId/free-days` – list free days (Owner only)
+- `POST /tenants/:tenantId/resources/:resourceId/free-days` – add free day (Owner only; body: date "YYYY-MM-DD", reason?)
 
-### Guests (auth required)
+### Guests
 
-- `GET /tenants/:tenantId/guests` – list guests
-- `POST /tenants/:tenantId/guests` – create guest (name, email, phone required; notes?)
+- `GET /tenants/:tenantId/guests` – list guests (Owner only)
+- `POST /tenants/:tenantId/guests` – create guest (Owner only; body: name, email, phone required; notes?)
 
 ### Appointments
 
-- `GET /tenants/:tenantId/appointments` – list appointments (query: resourceId?, guestId?, date?). Guest uses guestId only (no auth). Staff/owner use resourceId/date (auth required; staff sees only own resource).
-- `POST /tenants/:tenantId/appointments` – create appointment (resourceId, serviceId, guestId, startAt, endAt; priceAtBooking?, notes?). Public (guest books).
+- `GET /tenants/:tenantId/appointments` – list appointments. Guest: `?guestId=` (no auth). Staff/Owner: `?resourceId?&date?` (auth; Staff sees only own resource).
+- `POST /tenants/:tenantId/appointments` – create appointment (public; body: resourceId, serviceId, guestId, startAt, endAt; priceAtBooking?, notes?)
 
 ## Environment
 
