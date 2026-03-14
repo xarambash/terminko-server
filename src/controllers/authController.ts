@@ -12,9 +12,9 @@ const registerSchema = z.object({
 
 const loginSchema = z
   .object({
-    tenantId: z.string().uuid().optional(),
+    tenantId: z.uuid().optional(),
     tenantSlug: z.string().min(1).optional(),
-    email: z.string().email(),
+    email: z.email(),
     password: z.string().min(1),
   })
   .refine((data) => data.tenantId ?? data.tenantSlug, {
