@@ -10,9 +10,9 @@ import { getTenantId } from '../utils/requestUtils.js';
 const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
 
 const createAppointmentSchema = z.object({
-  resourceId: z.string().uuid(),
-  serviceId: z.string().uuid(),
-  guestId: z.string().uuid(),
+  resourceId: z.uuid(),
+  serviceId: z.uuid(),
+  guestId: z.uuid(),
   startAt: z.coerce.date(),
   endAt: z.coerce.date(),
   priceAtBooking: z.number().nonnegative().optional(),

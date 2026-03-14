@@ -5,7 +5,6 @@ import {
   optionalAuth,
   requireAuth,
   requireOwner,
-  requireOwnerOrOwnResource,
   requireTenantAccess,
 } from './middleware/authMiddleware.js';
 import tenantsRoutes from './routes/tenantsRoutes.js';
@@ -44,34 +43,34 @@ app.use(
 
 app.use(
   '/tenants/:tenantId/resources/:resourceId/services',
-  requireAuth,
-  requireTenantAccess,
-  requireOwnerOrOwnResource,
+  (req, res, next) => (req.method === 'GET' ? next() : requireAuth(req, res, next)),
+  (req, res, next) => (req.method === 'GET' ? next() : requireTenantAccess(req, res, next)),
+  (req, res, next) => (req.method === 'POST' ? requireOwner(req, res, next) : next()),
   resourceServicesRoutes
 );
 app.use(
   '/tenants/:tenantId/resources/:resourceId/working-hours',
   requireAuth,
   requireTenantAccess,
-  requireOwnerOrOwnResource,
+  requireOwner,
   resourceWorkingHoursRoutes
 );
 app.use(
   '/tenants/:tenantId/resources/:resourceId/free-days',
   requireAuth,
   requireTenantAccess,
-  requireOwnerOrOwnResource,
+  requireOwner,
   resourceFreeDaysRoutes
 );
 app.use(
   '/tenants/:tenantId/resources',
-  requireAuth,
-  requireTenantAccess,
+  (req, res, next) => (req.method === 'GET' ? next() : requireAuth(req, res, next)),
+  (req, res, next) => (req.method === 'GET' ? next() : requireTenantAccess(req, res, next)),
   (req, res, next) => (req.method === 'POST' ? requireOwner(req, res, next) : next()),
   resourcesRoutes
 );
-app.use('/tenants/:tenantId/services', requireAuth, requireTenantAccess, servicesRoutes);
-app.use('/tenants/:tenantId/guests', requireAuth, requireTenantAccess, guestsRoutes);
+app.use('/tenants/:tenantId/services', requireAuth, requireTenantAccess, requireOwner, servicesRoutes);
+app.use('/tenants/:tenantId/guests', requireAuth, requireTenantAccess, requireOwner, guestsRoutes);
 app.use('/tenants', tenantsRoutes);
 
 const server = app.listen(PORT, () => {
