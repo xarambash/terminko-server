@@ -12,7 +12,11 @@ const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
 const createAppointmentSchema = z.object({
   resourceId: z.uuid(),
   serviceId: z.uuid(),
-  guestId: z.uuid(),
+  guest: z.object({
+    name: z.string().min(1),
+    email: z.string().email(),
+    phone: z.string().min(1),
+  }),
   startAt: z.coerce.date(),
   endAt: z.coerce.date(),
   priceAtBooking: z.number().nonnegative().optional(),
@@ -79,7 +83,7 @@ export async function createAppointmentHandler(req: Request, res: Response) {
       tenantId,
       resourceId: data.resourceId,
       serviceId: data.serviceId,
-      guestId: data.guestId,
+      guest: data.guest,
       startAt: data.startAt,
       endAt: data.endAt,
       priceAtBooking: data.priceAtBooking,
@@ -87,7 +91,7 @@ export async function createAppointmentHandler(req: Request, res: Response) {
     });
     if (!appointment) {
       res.status(400).json({
-        error: 'Invalid request: resource, service or guest not found; or resource does not offer this service; or time slot is already booked',
+        error: 'Invalid request: resource or service not found; or resource does not offer this service; or time slot is already booked',
       });
       return;
     }

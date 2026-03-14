@@ -1,11 +1,12 @@
 import { prisma } from '../db.js';
+import { findOrCreateGuest } from './guestsService.js';
 import type { GetAppointmentsFilters } from '../types/appointments.js';
 
 export type CreateAppointmentInput = {
   tenantId: string;
   resourceId: string;
   serviceId: string;
-  guestId: string;
+  guest: { name: string; email: string; phone: string };
   startAt: Date;
   endAt: Date;
   priceAtBooking?: number | undefined;
@@ -13,10 +14,9 @@ export type CreateAppointmentInput = {
 };
 
 export async function createAppointment(data: CreateAppointmentInput) {
-  const [resource, service, guest, resourceService] = await Promise.all([
+  const [resource, service, resourceService] = await Promise.all([
     prisma.resource.findUnique({ where: { id: data.resourceId }, select: { tenantId: true } }),
     prisma.service.findUnique({ where: { id: data.serviceId }, select: { tenantId: true } }),
-    prisma.guest.findUnique({ where: { id: data.guestId }, select: { tenantId: true } }),
     prisma.resourceService.findFirst({
       where: {
         resourceId: data.resourceId,
@@ -29,8 +29,14 @@ export async function createAppointment(data: CreateAppointmentInput) {
 
   if (!resource || resource.tenantId !== data.tenantId) return null;
   if (!service || service.tenantId !== data.tenantId) return null;
-  if (!guest || guest.tenantId !== data.tenantId) return null;
   if (!resourceService) return null;
+
+  const guest = await findOrCreateGuest({
+    tenantId: data.tenantId,
+    name: data.guest.name,
+    email: data.guest.email,
+    phone: data.guest.phone,
+  });
 
   const overlapping = await prisma.appointment.findFirst({
     where: {
@@ -49,7 +55,7 @@ export async function createAppointment(data: CreateAppointmentInput) {
       tenantId: data.tenantId,
       resourceId: data.resourceId,
       serviceId: data.serviceId,
-      guestId: data.guestId,
+      guestId: guest.id,
       startAt: data.startAt,
       endAt: data.endAt,
       status: 'scheduled',

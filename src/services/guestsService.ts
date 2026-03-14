@@ -1,28 +1,30 @@
 import { prisma } from '../db.js';
 
-export type CreateGuestInput = {
+export async function getGuestsByTenantId(tenantId: string) {
+  return prisma.guest.findMany({
+    where: { tenantId },
+    orderBy: { name: 'asc' },
+  });
+}
+
+export type FindOrCreateGuestInput = {
   tenantId: string;
   name: string;
   email: string;
   phone: string;
-  notes?: string | undefined;
 };
 
-export async function createGuest(data: CreateGuestInput) {
+export async function findOrCreateGuest(data: FindOrCreateGuestInput) {
+  const existing = await prisma.guest.findFirst({
+    where: { tenantId: data.tenantId, email: data.email },
+  });
+  if (existing) return existing;
   return prisma.guest.create({
     data: {
       tenantId: data.tenantId,
       name: data.name,
       email: data.email,
       phone: data.phone,
-      ...(data.notes != null && { notes: data.notes }),
     },
-  });
-}
-
-export async function getGuestsByTenantId(tenantId: string) {
-  return prisma.guest.findMany({
-    where: { tenantId },
-    orderBy: { name: 'asc' },
   });
 }

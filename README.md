@@ -43,7 +43,8 @@ Protected routes require `Authorization: Bearer <token>` header.
 | GET resource services | ✓ | — | ✓ |
 | POST resource services | — | — | ✓ |
 | Working hours, Free days | — | — | ✓ |
-| Services, Guests | — | — | ✓ |
+| Services | — | — | ✓ |
+| GET guests | — | — | ✓ |
 | GET appointments (guestId) | ✓ | — | — |
 | GET appointments (resourceId/date) | — | ✓ (own) | ✓ (all) |
 | POST appointments | ✓ | — | — |
@@ -80,13 +81,12 @@ Protected routes require `Authorization: Bearer <token>` header.
 
 ### Guests
 
-- `GET /tenants/:tenantId/guests` – list guests (Owner only)
-- `POST /tenants/:tenantId/guests` – create guest (Owner only; body: name, email, phone required; notes?)
+- `GET /tenants/:tenantId/guests` – list guests (Owner only). Guests are created automatically when booking (see POST appointments).
 
 ### Appointments
 
 - `GET /tenants/:tenantId/appointments` – list appointments. Guest: `?guestId=` (no auth). Staff/Owner: `?resourceId?&date?` (auth; Staff sees only own resource).
-- `POST /tenants/:tenantId/appointments` – create appointment (public; body: resourceId, serviceId, guestId, startAt, endAt; priceAtBooking?, notes?)
+- `POST /tenants/:tenantId/appointments` – create appointment (public). Body: `resourceId`, `serviceId`, `guest: { name, email, phone }`, `startAt`, `endAt`; optional: `priceAtBooking`, `notes`. Guest is created if email does not exist in tenant.
 
 ## Environment
 
