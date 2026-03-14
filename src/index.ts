@@ -4,7 +4,11 @@ import { prisma } from './db.js';
 import tenantsRoutes from './routes/tenantsRoutes.js';
 import resourcesRoutes from './routes/resourcesRoutes.js';
 import resourceServicesRoutes from './routes/resourceServicesRoutes.js';
+import resourceWorkingHoursRoutes from './routes/resourceWorkingHoursRoutes.js';
+import resourceFreeDaysRoutes from './routes/resourceFreeDaysRoutes.js';
 import servicesRoutes from './routes/servicesRoutes.js';
+import guestsRoutes from './routes/guestsRoutes.js';
+import appointmentsRoutes from './routes/appointmentsRoutes.js';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -22,8 +26,12 @@ app.get('/health', async (req, res) => {
 });
 
 app.use('/tenants/:tenantId/resources/:resourceId/services', resourceServicesRoutes);
+app.use('/tenants/:tenantId/resources/:resourceId/working-hours', resourceWorkingHoursRoutes);
+app.use('/tenants/:tenantId/resources/:resourceId/free-days', resourceFreeDaysRoutes);
 app.use('/tenants/:tenantId/resources', resourcesRoutes);
 app.use('/tenants/:tenantId/services', servicesRoutes);
+app.use('/tenants/:tenantId/guests', guestsRoutes);
+app.use('/tenants/:tenantId/appointments', appointmentsRoutes);
 app.use('/tenants', tenantsRoutes);
 
 const server = app.listen(PORT, () => {

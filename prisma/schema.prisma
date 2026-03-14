@@ -156,8 +156,8 @@ model Guest {
   id            String    @id @default(uuid())
   tenantId      String   @map("tenant_id")
   name          String
-  email         String?
-  phone         String?
+  email         String
+  phone         String
   notes         String?
   penaltyPoints Int      @default(0) @map("penalty_points")
   isBanned      Boolean  @default(false) @map("is_banned")

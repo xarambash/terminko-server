@@ -45,6 +45,26 @@ npm install
 - `GET /tenants/:tenantId/resources/:resourceId/services` – list services assigned to resource (with prices)
 - `POST /tenants/:tenantId/resources/:resourceId/services` – assign service to resource (serviceId, price, durationOverride?)
 
+### Resource Working Hours
+
+- `GET /tenants/:tenantId/resources/:resourceId/working-hours` – list working hours for resource
+- `POST /tenants/:tenantId/resources/:resourceId/working-hours` – add working hour (dayOfWeek 0–6, startTime, endTime as "HH:MM")
+
+### Resource Free Days
+
+- `GET /tenants/:tenantId/resources/:resourceId/free-days` – list free days for resource
+- `POST /tenants/:tenantId/resources/:resourceId/free-days` – add free day (date as "YYYY-MM-DD", reason?)
+
+### Guests
+
+- `GET /tenants/:tenantId/guests` – list guests
+- `POST /tenants/:tenantId/guests` – create guest (name, email, phone required; notes?)
+
+### Appointments
+
+- `GET /tenants/:tenantId/appointments` – list appointments (query: resourceId?, guestId?, date?)
+- `POST /tenants/:tenantId/appointments` – create appointment (resourceId, serviceId, guestId, startAt, endAt; priceAtBooking?, notes?)
+
 ## Tech stack
 
 - Node.js, Express, TypeScript
