@@ -15,12 +15,7 @@ const createResourceSchema = z.object({
 });
 
 export async function getResourcesHandler(req: Request, res: Response) {
-  const tenantId = getTenantId(req);
-  if (!tenantId) {
-    res.status(400).json({ error: 'Tenant ID is required' });
-    return;
-  }
-
+  const tenantId = getTenantId(req)!;
   try {
     const resources = await getResourcesByTenantId(tenantId);
     res.json(resources);
@@ -31,12 +26,7 @@ export async function getResourcesHandler(req: Request, res: Response) {
 }
 
 export async function createResourceHandler(req: Request, res: Response) {
-  const tenantId = getTenantId(req);
-  if (!tenantId) {
-    res.status(400).json({ error: 'Tenant ID is required' });
-    return;
-  }
-
+  const tenantId = getTenantId(req)!;
   const parsed = createResourceSchema.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: 'Validation failed', details: parsed.error.flatten() });

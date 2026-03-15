@@ -6,8 +6,7 @@ import {
 } from '../services/appointmentsService.js';
 import type { GetAppointmentsFilters } from '../types/appointments.js';
 import { getTenantId } from '../utils/requestUtils.js';
-
-const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+import { DATE_REGEX } from '../utils/validation.js';
 
 const createAppointmentSchema = z.object({
   resourceId: z.uuid(),
@@ -24,26 +23,12 @@ const createAppointmentSchema = z.object({
 });
 
 export async function getAppointmentsHandler(req: Request, res: Response) {
-  const tenantId = getTenantId(req);
-  if (!tenantId) {
-    res.status(400).json({ error: 'Tenant ID is required' });
-    return;
-  }
-
-  let resourceId = typeof req.query.resourceId === 'string' ? req.query.resourceId : undefined;
+  const tenantId = getTenantId(req)!;
+  const resourceId = typeof req.query.resourceId === 'string' ? req.query.resourceId : undefined;
   const guestId = typeof req.query.guestId === 'string' ? req.query.guestId : undefined;
-  const date = typeof req.query.date === 'string' && dateRegex.test(req.query.date)
+  const date = typeof req.query.date === 'string' && DATE_REGEX.test(req.query.date)
     ? req.query.date
     : undefined;
-
-  if ((resourceId || date) && !req.user) {
-    res.status(401).json({ error: 'Authentication required for resource or date filter' });
-    return;
-  }
-
-  if (req.user?.role === 'staff') {
-    resourceId = req.user.resourceId ?? undefined;
-  }
 
   try {
     const filters: GetAppointmentsFilters = { tenantId };
@@ -59,12 +44,7 @@ export async function getAppointmentsHandler(req: Request, res: Response) {
 }
 
 export async function createAppointmentHandler(req: Request, res: Response) {
-  const tenantId = getTenantId(req);
-  if (!tenantId) {
-    res.status(400).json({ error: 'Tenant ID is required' });
-    return;
-  }
-
+  const tenantId = getTenantId(req)!;
   const parsed = createAppointmentSchema.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: 'Validation failed', details: parsed.error.flatten() });

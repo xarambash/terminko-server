@@ -15,13 +15,8 @@ const createWorkingHourSchema = z.object({
 });
 
 export async function getWorkingHoursHandler(req: Request, res: Response) {
-  const tenantId = getTenantId(req);
-  const resourceId = getResourceId(req);
-  if (!tenantId || !resourceId) {
-    res.status(400).json({ error: 'Tenant ID and Resource ID are required' });
-    return;
-  }
-
+  const tenantId = getTenantId(req)!;
+  const resourceId = getResourceId(req)!;
   try {
     const workingHours = await getWorkingHoursByResourceId(resourceId, tenantId);
     if (workingHours === null) {
@@ -36,13 +31,8 @@ export async function getWorkingHoursHandler(req: Request, res: Response) {
 }
 
 export async function createWorkingHourHandler(req: Request, res: Response) {
-  const tenantId = getTenantId(req);
-  const resourceId = getResourceId(req);
-  if (!tenantId || !resourceId) {
-    res.status(400).json({ error: 'Tenant ID and Resource ID are required' });
-    return;
-  }
-
+  const tenantId = getTenantId(req)!;
+  const resourceId = getResourceId(req)!;
   const parsed = createWorkingHourSchema.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: 'Validation failed', details: parsed.error.flatten() });

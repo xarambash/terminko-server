@@ -5,7 +5,14 @@ import {
   optionalAuth,
   requireAuth,
   requireOwner,
+  requireOwnerPermissionToPost,
+  requireOwnerOrStaffOwnResource,
+  restrictStaffToTheirResource,
   requireTenantAccess,
+  requireTenantIdInParams,
+  requireResourceIdInParams,
+  requireAuthOrGuestIdForAppointments,
+  confirmTenantIfAuthenticated,
 } from './middleware/authMiddleware.js';
 import tenantsRoutes from './routes/tenantsRoutes.js';
 import resourcesRoutes from './routes/resourcesRoutes.js';
@@ -15,6 +22,7 @@ import resourceFreeDaysRoutes from './routes/resourceFreeDaysRoutes.js';
 import servicesRoutes from './routes/servicesRoutes.js';
 import guestsRoutes from './routes/guestsRoutes.js';
 import appointmentsRoutes from './routes/appointmentsRoutes.js';
+import availableSlotsRoutes from './routes/availableSlotsRoutes.js';
 import authRoutes from './routes/authRoutes.js';
 
 const app = express();
@@ -36,27 +44,42 @@ app.use('/auth', authRoutes);
 
 app.use(
   '/tenants/:tenantId/appointments',
-  (req, res, next) => (req.method === 'POST' ? next() : optionalAuth(req, res, next)),
-  (req, res, next) => (req.user ? requireTenantAccess(req, res, next) : next()),
+  requireTenantIdInParams,
+  optionalAuth,
+  confirmTenantIfAuthenticated,
+  requireAuthOrGuestIdForAppointments,
   appointmentsRoutes
 );
 
 app.use(
+  '/tenants/:tenantId/resources/:resourceId/available-slots',
+  requireTenantIdInParams,
+  requireResourceIdInParams,
+  optionalAuth,
+  confirmTenantIfAuthenticated,
+  restrictStaffToTheirResource,
+  availableSlotsRoutes
+);
+app.use(
   '/tenants/:tenantId/resources/:resourceId/services',
-  (req, res, next) => (req.method === 'GET' ? next() : requireAuth(req, res, next)),
-  (req, res, next) => (req.method === 'GET' ? next() : requireTenantAccess(req, res, next)),
-  (req, res, next) => (req.method === 'POST' ? requireOwner(req, res, next) : next()),
+  requireTenantIdInParams,
+  requireResourceIdInParams,
+  requireOwnerPermissionToPost,
   resourceServicesRoutes
 );
 app.use(
   '/tenants/:tenantId/resources/:resourceId/working-hours',
+  requireTenantIdInParams,
+  requireResourceIdInParams,
   requireAuth,
   requireTenantAccess,
-  requireOwner,
+  requireOwnerOrStaffOwnResource,
   resourceWorkingHoursRoutes
 );
 app.use(
   '/tenants/:tenantId/resources/:resourceId/free-days',
+  requireTenantIdInParams,
+  requireResourceIdInParams,
   requireAuth,
   requireTenantAccess,
   requireOwner,
@@ -64,13 +87,24 @@ app.use(
 );
 app.use(
   '/tenants/:tenantId/resources',
-  (req, res, next) => (req.method === 'GET' ? next() : requireAuth(req, res, next)),
-  (req, res, next) => (req.method === 'GET' ? next() : requireTenantAccess(req, res, next)),
-  (req, res, next) => (req.method === 'POST' ? requireOwner(req, res, next) : next()),
+  requireTenantIdInParams,
+  requireOwnerPermissionToPost,
   resourcesRoutes
 );
-app.use('/tenants/:tenantId/services', requireAuth, requireTenantAccess, requireOwner, servicesRoutes);
-app.use('/tenants/:tenantId/guests', requireAuth, requireTenantAccess, requireOwner, guestsRoutes);
+app.use('/tenants/:tenantId/services',
+  requireTenantIdInParams,
+  requireAuth,
+  requireTenantAccess,
+  requireOwnerPermissionToPost,
+  servicesRoutes
+);
+app.use('/tenants/:tenantId/guests',
+  requireTenantIdInParams,
+  requireAuth,
+  requireTenantAccess,
+  requireOwnerPermissionToPost,
+  guestsRoutes
+);
 app.use('/tenants', tenantsRoutes);
 
 const server = app.listen(PORT, () => {

@@ -12,12 +12,7 @@ const createServiceSchema = z.object({
 });
 
 export async function getServicesHandler(req: Request, res: Response) {
-  const tenantId = getTenantId(req);
-  if (!tenantId) {
-    res.status(400).json({ error: 'Tenant ID is required' });
-    return;
-  }
-
+  const tenantId = getTenantId(req)!;
   try {
     const services = await getServicesByTenantId(tenantId);
     res.json(services);
@@ -28,12 +23,7 @@ export async function getServicesHandler(req: Request, res: Response) {
 }
 
 export async function createServiceHandler(req: Request, res: Response) {
-  const tenantId = getTenantId(req);
-  if (!tenantId) {
-    res.status(400).json({ error: 'Tenant ID is required' });
-    return;
-  }
-
+  const tenantId = getTenantId(req)!;
   const parsed = createServiceSchema.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: 'Validation failed', details: parsed.error.flatten() });

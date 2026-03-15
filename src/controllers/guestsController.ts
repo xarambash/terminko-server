@@ -3,12 +3,7 @@ import { getGuestsByTenantId } from '../services/guestsService.js';
 import { getTenantId } from '../utils/requestUtils.js';
 
 export async function getGuestsHandler(req: Request, res: Response) {
-  const tenantId = getTenantId(req);
-  if (!tenantId) {
-    res.status(400).json({ error: 'Tenant ID is required' });
-    return;
-  }
-
+  const tenantId = getTenantId(req)!;
   try {
     const guests = await getGuestsByTenantId(tenantId);
     res.json(guests);

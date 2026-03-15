@@ -14,13 +14,8 @@ const createResourceServiceSchema = z.object({
 });
 
 export async function getResourceServicesHandler(req: Request, res: Response) {
-  const tenantId = getTenantId(req);
-  const resourceId = getResourceId(req);
-  if (!tenantId || !resourceId) {
-    res.status(400).json({ error: 'Tenant ID and Resource ID are required' });
-    return;
-  }
-
+  const tenantId = getTenantId(req)!;
+  const resourceId = getResourceId(req)!;
   try {
     const resourceServices = await getResourceServicesByResourceId(resourceId, tenantId);
     if (resourceServices === null) {
@@ -35,13 +30,8 @@ export async function getResourceServicesHandler(req: Request, res: Response) {
 }
 
 export async function createResourceServiceHandler(req: Request, res: Response) {
-  const tenantId = getTenantId(req);
-  const resourceId = getResourceId(req);
-  if (!tenantId || !resourceId) {
-    res.status(400).json({ error: 'Tenant ID and Resource ID are required' });
-    return;
-  }
-
+  const tenantId = getTenantId(req)!;
+  const resourceId = getResourceId(req)!;
   const parsed = createResourceServiceSchema.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: 'Validation failed', details: parsed.error.flatten() });

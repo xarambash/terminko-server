@@ -42,7 +42,9 @@ Protected routes require `Authorization: Bearer <token>` header.
 | POST resources | — | — | ✓ |
 | GET resource services | ✓ | — | ✓ |
 | POST resource services | — | — | ✓ |
-| Working hours, Free days | — | — | ✓ |
+| GET available slots | ✓ | ✓ (own) | ✓ |
+| GET working hours | — | ✓ (own) | ✓ |
+| POST working hours, Free days | — | — | ✓ |
 | Services | — | — | ✓ |
 | GET guests | — | — | ✓ |
 | GET appointments (guestId) | ✓ | — | — |
@@ -69,9 +71,13 @@ Protected routes require `Authorization: Bearer <token>` header.
 - `GET /tenants/:tenantId/resources/:resourceId/services` – list services assigned to resource with prices (public, for guest booking)
 - `POST /tenants/:tenantId/resources/:resourceId/services` – assign service to resource (Owner only; body: serviceId, price, durationOverride?)
 
+### Available Slots
+
+- `GET /tenants/:tenantId/resources/:resourceId/available-slots` – list available time slots for booking. Guest/Owner: any resource. Staff: own resource only. Query: `serviceId`, `date` (YYYY-MM-DD). Returns `[{ startAt, endAt }]` (ISO 8601).
+
 ### Resource Working Hours
 
-- `GET /tenants/:tenantId/resources/:resourceId/working-hours` – list working hours (Owner only)
+- `GET /tenants/:tenantId/resources/:resourceId/working-hours` – list working hours (Owner: any resource; Staff: own resource only)
 - `POST /tenants/:tenantId/resources/:resourceId/working-hours` – add working hour (Owner only; body: dayOfWeek 0–6, startTime, endTime as "HH:MM")
 
 ### Resource Free Days

@@ -5,22 +5,16 @@ import {
   getFreeDaysByResourceId,
 } from '../services/resourceFreeDaysService.js';
 import { getResourceId, getTenantId } from '../utils/requestUtils.js';
-
-const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+import { DATE_REGEX } from '../utils/validation.js';
 
 const createFreeDaySchema = z.object({
-  date: z.string().regex(dateRegex, 'Date must be YYYY-MM-DD format').transform((s) => new Date(s)),
+  date: z.string().regex(DATE_REGEX, 'Date must be YYYY-MM-DD format').transform((s) => new Date(s)),
   reason: z.string().optional(),
 });
 
 export async function getFreeDaysHandler(req: Request, res: Response) {
-  const tenantId = getTenantId(req);
-  const resourceId = getResourceId(req);
-  if (!tenantId || !resourceId) {
-    res.status(400).json({ error: 'Tenant ID and Resource ID are required' });
-    return;
-  }
-
+  const tenantId = getTenantId(req)!;
+  const resourceId = getResourceId(req)!;
   try {
     const freeDays = await getFreeDaysByResourceId(resourceId, tenantId);
     if (freeDays === null) {
@@ -35,13 +29,8 @@ export async function getFreeDaysHandler(req: Request, res: Response) {
 }
 
 export async function createFreeDayHandler(req: Request, res: Response) {
-  const tenantId = getTenantId(req);
-  const resourceId = getResourceId(req);
-  if (!tenantId || !resourceId) {
-    res.status(400).json({ error: 'Tenant ID and Resource ID are required' });
-    return;
-  }
-
+  const tenantId = getTenantId(req)!;
+  const resourceId = getResourceId(req)!;
   const parsed = createFreeDaySchema.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: 'Validation failed', details: parsed.error.flatten() });
