@@ -3,6 +3,7 @@ import { z } from 'zod';
 import {
   createAppointment,
   getAppointments,
+  cancelAppointment,
 } from '../services/appointmentsService.js';
 import type { GetAppointmentsFilters } from '../types/appointments.js';
 import { getTenantId } from '../utils/requestUtils.js';
@@ -79,5 +80,44 @@ export async function createAppointmentHandler(req: Request, res: Response) {
   } catch (error) {
     console.error('Create appointment error:', error);
     res.status(500).json({ error: 'Failed to create appointment' });
+  }
+}
+
+const cancelAppointmentSchema = z.object({
+  guestId: z.string().uuid(),
+});
+
+export async function cancelAppointmentHandler(req: Request, res: Response) {
+  const tenantId = getTenantId(req)!;
+  const appointmentId = req.params.id;
+  const appointmentIdStr = typeof appointmentId === 'string' ? appointmentId : appointmentId?.[0];
+
+  if (!appointmentIdStr) {
+    res.status(400).json({ error: 'Appointment ID is required' });
+    return;
+  }
+
+  const parsed = cancelAppointmentSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: 'Validation failed', details: parsed.error.flatten() });
+    return;
+  }
+
+  try {
+    const appointment = await cancelAppointment(
+      appointmentIdStr,
+      tenantId,
+      parsed.data.guestId
+    );
+    if (!appointment) {
+      res.status(404).json({
+        error: 'Appointment not found, already canceled, or guestId does not match',
+      });
+      return;
+    }
+    res.json(appointment);
+  } catch (error) {
+    console.error('Cancel appointment error:', error);
+    res.status(500).json({ error: 'Failed to cancel appointment' });
   }
 }

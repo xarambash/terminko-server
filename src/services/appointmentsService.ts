@@ -93,3 +93,27 @@ export async function getAppointments(filters: GetAppointmentsFilters) {
     orderBy: { startAt: 'asc' },
   });
 }
+
+export async function cancelAppointment(
+  appointmentId: string,
+  tenantId: string,
+  guestId: string
+) {
+  const appointment = await prisma.appointment.findFirst({
+    where: { id: appointmentId, tenantId, guestId, status: 'scheduled' },
+  });
+  if (!appointment) return null;
+
+  return prisma.appointment.update({
+    where: { id: appointmentId },
+    data: {
+      status: 'canceled',
+      canceledAt: new Date(),
+    },
+    include: {
+      resource: { select: { id: true, firstName: true, lastName: true } },
+      service: { select: { id: true, name: true, durationMinutes: true } },
+      guest: { select: { id: true, name: true, email: true } },
+    },
+  });
+}
