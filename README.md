@@ -50,6 +50,7 @@ Protected routes require `Authorization: Bearer <token>` header.
 | GET appointments (guestId) | ✓ | — | — |
 | GET appointments (resourceId/date) | — | ✓ (own) | ✓ (all) |
 | POST appointments | ✓ | — | — |
+| PATCH appointments (cancel, guestId) | ✓ | — | — |
 
 ### Tenants
 
@@ -93,6 +94,7 @@ Protected routes require `Authorization: Bearer <token>` header.
 
 - `GET /tenants/:tenantId/appointments` – list appointments. Guest: `?guestId=` (no auth). Staff/Owner: `?resourceId?&date?` (auth; Staff sees only own resource).
 - `POST /tenants/:tenantId/appointments` – create appointment (public). Body: `resourceId`, `serviceId`, `guest: { name, email, phone }`, `startAt`, `endAt`; optional: `priceAtBooking`, `notes`. Guest is created if email does not exist in tenant.
+- `PATCH /tenants/:tenantId/appointments/:id` – cancel appointment (public). Body: `{ "guestId": "uuid" }`. Only the guest who booked can cancel (guestId must match).
 
 ## Environment
 
