@@ -84,7 +84,7 @@ export async function createAppointmentHandler(req: Request, res: Response) {
 }
 
 const cancelAppointmentSchema = z.object({
-  guestId: z.string().uuid(),
+  guestId: z.uuid(),
 });
 
 export async function cancelAppointmentHandler(req: Request, res: Response) {

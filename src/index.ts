@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import cors from 'cors';
 import express from 'express';
+import morgan from 'morgan';
 import { prisma } from './db.js';
 import {
   optionalAuth,
@@ -15,6 +16,7 @@ import {
   requireAuthOrGuestIdForAppointments,
   confirmTenantIfAuthenticated,
 } from './middleware/authMiddleware.js';
+import { requestLoggingMiddleware } from './middleware/requestLoggingMiddleware.js';
 import tenantsRoutes from './routes/tenantsRoutes.js';
 import resourcesRoutes from './routes/resourcesRoutes.js';
 import resourceServicesRoutes from './routes/resourceServicesRoutes.js';
@@ -31,6 +33,8 @@ const PORT = process.env.PORT || 5000;
 
 app.use(cors());
 app.use(express.json());
+app.use(morgan('dev'));
+app.use(requestLoggingMiddleware);
 
 app.get('/health', async (req, res) => {
   try {
