@@ -25,7 +25,8 @@ const createAppointmentSchema = z.object({
 
 export async function getAppointmentsHandler(req: Request, res: Response) {
   const tenantId = getTenantId(req)!;
-  const resourceId = typeof req.query.resourceId === 'string' ? req.query.resourceId : undefined;
+  const resourceIdFromQuery =
+    typeof req.query.resourceId === 'string' ? req.query.resourceId : undefined;
   const guestId = typeof req.query.guestId === 'string' ? req.query.guestId : undefined;
   const date = typeof req.query.date === 'string' && DATE_REGEX.test(req.query.date)
     ? req.query.date
@@ -33,7 +34,17 @@ export async function getAppointmentsHandler(req: Request, res: Response) {
 
   try {
     const filters: GetAppointmentsFilters = { tenantId };
-    if (resourceId) filters.resourceId = resourceId;
+
+    if (req.user?.role === 'staff') {
+      if (!req.user.resourceId) {
+        res.status(403).json({ error: 'Staff account is not linked to a resource' });
+        return;
+      }
+      filters.resourceId = req.user.resourceId;
+    } else if (resourceIdFromQuery) {
+      filters.resourceId = resourceIdFromQuery;
+    }
+
     if (guestId) filters.guestId = guestId;
     if (date) filters.date = date;
     const appointments = await getAppointments(filters);

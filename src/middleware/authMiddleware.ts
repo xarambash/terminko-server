@@ -37,7 +37,7 @@ export function requireResourceIdInParams(req: Request, res: Response, next: Nex
 
 /**
  * GET appointments: require auth OR guestId. Owner/staff need auth; guest needs guestId.
- * Staff: override resourceId with their own. Must run after optionalAuth.
+ * Staff list scope is applied in getAppointmentsHandler. Must run after optionalAuth.
  */
 export function requireAuthOrGuestIdForAppointments(req: Request, res: Response, next: NextFunction) {
   if (req.method !== 'GET') return next();
@@ -56,10 +56,7 @@ export function requireAuthOrGuestIdForAppointments(req: Request, res: Response,
     res.status(401).json({ error: 'Provide guestId to view your appointments' });
     return;
   }
-  if (req.user?.role === 'staff' && req.user.resourceId) {
-    // prevent the staff unit to access appointments for other resources by overriding the resourceId query parameter
-    (req.query as Record<string, string>).resourceId = req.user.resourceId;
-  }
+  // Staff scope (resourceId) is enforced in getAppointmentsHandler from req.user
   next();
 }
 
