@@ -184,6 +184,7 @@ model Appointment {
   status            String   // e.g. "scheduled", "completed", "canceled"
   priceAtBooking    Decimal? @map("price_at_booking") @db.Decimal(10, 2)
   notes             String?
+  cancellationCode   String?   @unique @map("cancellation_code")
   canceledAt       DateTime? @map("canceled_at")
   cancellationReason String? @map("cancelation_reason")
   createdAt         DateTime @default(now()) @map("created_at")

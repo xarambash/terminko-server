@@ -1,6 +1,12 @@
+import crypto from 'node:crypto';
 import { prisma } from '../db.js';
 import { findOrCreateGuest } from './guestsService.js';
+import { sendAppointmentConfirmation } from './emailService.js';
 import type { GetAppointmentsFilters } from '../types/appointments.js';
+
+function generateCancellationCode(): string {
+  return crypto.randomBytes(4).toString('hex').toUpperCase();
+}
 
 export type CreateAppointmentInput = {
   tenantId: string;
@@ -49,8 +55,9 @@ export async function createAppointment(data: CreateAppointmentInput) {
   if (overlapping) return null;
 
   const price = data.priceAtBooking ?? Number(resourceService.price);
+  const cancellationCode = generateCancellationCode();
 
-  return prisma.appointment.create({
+  const appointment = await prisma.appointment.create({
     data: {
       tenantId: data.tenantId,
       resourceId: data.resourceId,
@@ -60,6 +67,7 @@ export async function createAppointment(data: CreateAppointmentInput) {
       endAt: data.endAt,
       status: 'scheduled',
       priceAtBooking: price,
+      cancellationCode,
       ...(data.notes != null && { notes: data.notes }),
     },
     include: {
@@ -68,6 +76,18 @@ export async function createAppointment(data: CreateAppointmentInput) {
       guest: { select: { id: true, name: true, email: true } },
     },
   });
+
+  sendAppointmentConfirmation({
+    guestEmail: guest.email,
+    guestName: guest.name,
+    resourceName: `${appointment.resource.firstName} ${appointment.resource.lastName}`,
+    serviceName: appointment.service.name,
+    startAt: appointment.startAt,
+    endAt: appointment.endAt,
+    cancellationCode,
+  }).catch((err) => console.error('Failed to send confirmation email:', err));
+
+  return appointment;
 }
 
 export async function getAppointments(filters: GetAppointmentsFilters) {
@@ -97,15 +117,38 @@ export async function getAppointments(filters: GetAppointmentsFilters) {
 export async function cancelAppointment(
   appointmentId: string,
   tenantId: string,
-  guestId: string
+  cancellationCode: string
 ) {
   const appointment = await prisma.appointment.findFirst({
-    where: { id: appointmentId, tenantId, guestId, status: 'scheduled' },
+    where: { id: appointmentId, tenantId, cancellationCode, status: 'scheduled' },
   });
   if (!appointment) return null;
 
   return prisma.appointment.update({
     where: { id: appointmentId },
+    data: {
+      status: 'canceled',
+      canceledAt: new Date(),
+    },
+    include: {
+      resource: { select: { id: true, firstName: true, lastName: true } },
+      service: { select: { id: true, name: true, durationMinutes: true } },
+      guest: { select: { id: true, name: true, email: true } },
+    },
+  });
+}
+
+export async function cancelAppointmentByCode(
+  tenantId: string,
+  cancellationCode: string,
+) {
+  const appointment = await prisma.appointment.findFirst({
+    where: { tenantId, cancellationCode, status: 'scheduled' },
+  });
+  if (!appointment) return null;
+
+  return prisma.appointment.update({
+    where: { id: appointment.id },
     data: {
       status: 'canceled',
       canceledAt: new Date(),
