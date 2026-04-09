@@ -46,6 +46,12 @@ export function requireAuthOrGuestIdForAppointments(req: Request, res: Response,
   const guestId = typeof req.query.guestId === 'string' ? req.query.guestId : undefined;
   const date = typeof req.query.date === 'string' && DATE_REGEX.test(req.query.date) ? req.query.date : undefined;
 
+  // Authenticated owner/staff must always provide a valid date filter.
+  if (req.user && !date) {
+    res.status(400).json({ error: 'Missing required query param: date (YYYY-MM-DD)' });
+    return;
+  }
+
   // if user is not authenticated, but resourceId or date is provided, return 401
   // (this means that the user is trying to view appointments for a specific resource or date, but is not authenticated)
   if (!req.user && (resourceId != null || date != null)) {
