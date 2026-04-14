@@ -9,3 +9,8 @@ export function getResourceId(req: Request): string | undefined {
   const resourceId = req.params.resourceId;
   return typeof resourceId === 'string' ? resourceId : resourceId?.[0];
 }
+
+export function getServiceId(req: Request): string | undefined {
+  const serviceId = req.params.serviceId;
+  return typeof serviceId === 'string' ? serviceId : serviceId?.[0];
+}

@@ -73,7 +73,7 @@ export async function createAppointment(data: CreateAppointmentInput) {
     include: {
       resource: { select: { id: true, firstName: true, lastName: true } },
       service: { select: { id: true, name: true, durationMinutes: true } },
-      guest: { select: { id: true, name: true, email: true } },
+      guest: { select: { id: true, name: true, email: true, phone: true } },
     },
   });
 
@@ -108,7 +108,7 @@ export async function getAppointments(filters: GetAppointmentsFilters) {
     include: {
       resource: { select: { id: true, firstName: true, lastName: true } },
       service: { select: { id: true, name: true, durationMinutes: true } },
-      guest: { select: { id: true, name: true, email: true } },
+      guest: { select: { id: true, name: true, email: true, phone: true } },
     },
     orderBy: { startAt: 'asc' },
   });
@@ -133,7 +133,7 @@ export async function cancelAppointment(
     include: {
       resource: { select: { id: true, firstName: true, lastName: true } },
       service: { select: { id: true, name: true, durationMinutes: true } },
-      guest: { select: { id: true, name: true, email: true } },
+      guest: { select: { id: true, name: true, email: true, phone: true } },
     },
   });
 }
@@ -156,7 +156,7 @@ export async function cancelAppointmentByCode(
     include: {
       resource: { select: { id: true, firstName: true, lastName: true } },
       service: { select: { id: true, name: true, durationMinutes: true } },
-      guest: { select: { id: true, name: true, email: true } },
+      guest: { select: { id: true, name: true, email: true, phone: true } },
     },
   });
 }

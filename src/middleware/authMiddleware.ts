@@ -177,17 +177,12 @@ export function restrictStaffToTheirResource(req: Request, res: Response, next: 
 }
 
 /**
- * GET: pass through (public). POST: require auth, tenant access, and owner role.
- * PUT/PATCH/DELETE: require auth and tenant access only (no owner check).
- * Use for routes like resource-services and resources where GET is public and POST is owner-only.
+ * GET: pass through (public). All other methods: require auth, tenant access, and owner role.
+ * Use for routes like resource-services and resources where GET is public and mutations are owner-only.
  */
 export function requireOwnerPermissionToPost(req: Request, res: Response, next: NextFunction) {
   if (req.method === 'GET') return next();
-  requireAuth(req, res, () =>
-    requireTenantAccess(req, res, () =>
-      req.method === 'POST' ? requireOwner(req, res, next) : next()
-    )
-  );
+  requireAuth(req, res, () => requireTenantAccess(req, res, () => requireOwner(req, res, next)));
 }
 /**
  * Owner: full access. Staff: GET only own resource, POST/PUT/DELETE denied.

@@ -79,7 +79,9 @@ Protected routes require `Authorization: Bearer <token>` header.
 ### Resource Working Hours
 
 - `GET /tenants/:tenantId/resources/:resourceId/working-hours` – list working hours (Owner: any resource; Staff: own resource only)
-- `POST /tenants/:tenantId/resources/:resourceId/working-hours` – add working hour (Owner only; body: dayOfWeek 0–6, startTime, endTime as "HH:MM")
+- `POST /tenants/:tenantId/resources/:resourceId/working-hours` – add working hour (Owner only; body: dayOfWeek 0–6, startTime, endTime as "HH:MM"; multiple intervals per day allowed, overlaps rejected with `409`)
+- `PATCH /tenants/:tenantId/resources/:resourceId/working-hours/:workingHourId` – update working hour interval (Owner only; same body as POST; overlaps rejected with `409`)
+- `DELETE /tenants/:tenantId/resources/:resourceId/working-hours/:workingHourId` – delete working hour interval (Owner only)
 
 ### Resource Free Days
 

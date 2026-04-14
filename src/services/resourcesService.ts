@@ -52,3 +52,38 @@ export async function getResourcesByTenantId(tenantId: string) {
     orderBy: [{ displayOrder: 'asc' }, { lastName: 'asc' }],
   });
 }
+
+type ResourceRecord = Awaited<ReturnType<typeof prisma.resource.create>>;
+
+export type DeleteResourceResult =
+  | { status: 'not_found' }
+  | { status: 'has_future_appointments' }
+  | { status: 'success'; resource: ResourceRecord };
+
+export async function deleteResource(tenantId: string, resourceId: string): Promise<DeleteResourceResult> {
+  const existing = await prisma.resource.findFirst({
+    where: { id: resourceId, tenantId },
+    select: { id: true },
+  });
+  if (!existing) {
+    return { status: 'not_found' };
+  }
+
+  const futureScheduled = await prisma.appointment.count({
+    where: {
+      tenantId,
+      resourceId,
+      status: 'scheduled',
+      startAt: { gt: new Date() },
+    },
+  });
+  if (futureScheduled > 0) {
+    return { status: 'has_future_appointments' };
+  }
+
+  const resource = await prisma.resource.delete({
+    where: { id: resourceId },
+  });
+
+  return { status: 'success', resource };
+}

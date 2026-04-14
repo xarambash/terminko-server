@@ -1,7 +1,7 @@
 import type { Request, Response } from 'express';
 import { z } from 'zod';
-import { createResource, getResourcesByTenantId } from '../services/resourcesService.js';
-import { getTenantId } from '../utils/requestUtils.js';
+import { createResource, deleteResource, getResourcesByTenantId } from '../services/resourcesService.js';
+import { getResourceId, getTenantId } from '../utils/requestUtils.js';
 
 const createResourceSchema = z.object({
   firstName: z.string().min(1),
@@ -55,5 +55,32 @@ export async function createResourceHandler(req: Request, res: Response) {
     }
     console.error('Create resource error:', error);
     res.status(500).json({ error: 'Failed to create resource' });
+  }
+}
+
+export async function deleteResourceHandler(req: Request, res: Response) {
+  const tenantId = getTenantId(req)!;
+  const resourceId = getResourceId(req);
+  if (!resourceId) {
+    res.status(400).json({ error: 'Resource ID is required' });
+    return;
+  }
+
+  try {
+    const result = await deleteResource(tenantId, resourceId);
+    if (result.status === 'not_found') {
+      res.status(404).json({ error: 'Resource not found' });
+      return;
+    }
+    if (result.status === 'has_future_appointments') {
+      res.status(409).json({
+        error: 'Cannot delete resource: there are future scheduled appointments for this resource',
+      });
+      return;
+    }
+    res.json(result.resource);
+  } catch (error) {
+    console.error('Delete resource error:', error);
+    res.status(500).json({ error: 'Failed to delete resource' });
   }
 }
