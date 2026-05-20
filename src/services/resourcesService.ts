@@ -1,5 +1,6 @@
 import bcrypt from 'bcryptjs';
 import { prisma } from '../db.js';
+import { getSupabase, PROFILE_PICTURES_BUCKET } from '../utils/supabase.js';
 
 export type CreateResourceInput = {
   tenantId: string;
@@ -51,6 +52,86 @@ export async function getResourcesByTenantId(tenantId: string) {
     where: { tenantId },
     orderBy: [{ displayOrder: 'asc' }, { lastName: 'asc' }],
   });
+}
+
+export type UpdateResourceInput = {
+  firstName?: string | undefined;
+  lastName?: string | undefined;
+  email?: string | undefined;
+  phone?: string | null | undefined;
+  isActive?: boolean | undefined;
+};
+
+export type UpdateResourceResult =
+  | { status: 'not_found' }
+  | { status: 'success'; resource: ResourceRecord };
+
+export async function updateResource(
+  tenantId: string,
+  resourceId: string,
+  patch: UpdateResourceInput
+): Promise<UpdateResourceResult> {
+  const existing = await prisma.resource.findFirst({
+    where: { id: resourceId, tenantId },
+    select: { id: true },
+  });
+  if (!existing) {
+    return { status: 'not_found' };
+  }
+
+  const resource = await prisma.resource.update({
+    where: { id: resourceId },
+    data: {
+      ...(patch.firstName !== undefined && { firstName: patch.firstName }),
+      ...(patch.lastName !== undefined && { lastName: patch.lastName }),
+      ...(patch.email !== undefined && { email: patch.email }),
+      ...(patch.phone !== undefined && { phone: patch.phone }),
+      ...(patch.isActive !== undefined && { isActive: patch.isActive }),
+    },
+  });
+
+  return { status: 'success', resource };
+}
+
+export type UploadResourcePhotoResult =
+  | { status: 'not_found' }
+  | { status: 'storage_error'; message: string }
+  | { status: 'success'; resource: ResourceRecord };
+
+export async function uploadResourcePhoto(
+  tenantId: string,
+  resourceId: string,
+  fileBuffer: Buffer,
+  mimeType: string
+): Promise<UploadResourcePhotoResult> {
+  const existing = await prisma.resource.findFirst({
+    where: { id: resourceId, tenantId },
+    select: { id: true },
+  });
+  if (!existing) {
+    return { status: 'not_found' };
+  }
+
+  const supabase = getSupabase();
+  const storagePath = `${tenantId}/${resourceId}`;
+  const { error: uploadError } = await supabase.storage
+    .from(PROFILE_PICTURES_BUCKET)
+    .upload(storagePath, fileBuffer, { contentType: mimeType, upsert: true });
+
+  if (uploadError) {
+    return { status: 'storage_error', message: uploadError.message };
+  }
+
+  const { data: urlData } = supabase.storage
+    .from(PROFILE_PICTURES_BUCKET)
+    .getPublicUrl(storagePath);
+
+  const resource = await prisma.resource.update({
+    where: { id: resourceId },
+    data: { profilePicture: urlData.publicUrl },
+  });
+
+  return { status: 'success', resource };
 }
 
 type ResourceRecord = Awaited<ReturnType<typeof prisma.resource.create>>;

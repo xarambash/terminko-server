@@ -59,7 +59,8 @@ export async function getAvailableSlots(
       prisma.resourceFreeDay.findFirst({
         where: {
           resourceId: data.resourceId,
-          date: dayStart,
+          startDate: { lte: dayStart },
+          endDate: { gte: dayStart },
         },
       }),
       prisma.appointment.findMany({

@@ -138,6 +138,28 @@ export async function cancelAppointment(
   });
 }
 
+export async function cancelAppointmentAuthenticated(
+  appointmentId: string,
+  tenantId: string,
+  resourceId?: string
+) {
+  const where: Record<string, unknown> = { id: appointmentId, tenantId, status: 'scheduled' };
+  if (resourceId) where.resourceId = resourceId;
+
+  const appointment = await prisma.appointment.findFirst({ where });
+  if (!appointment) return null;
+
+  return prisma.appointment.update({
+    where: { id: appointmentId },
+    data: { status: 'canceled', canceledAt: new Date() },
+    include: {
+      resource: { select: { id: true, firstName: true, lastName: true } },
+      service: { select: { id: true, name: true, durationMinutes: true } },
+      guest: { select: { id: true, name: true, email: true, phone: true } },
+    },
+  });
+}
+
 export async function cancelAppointmentByCode(
   tenantId: string,
   cancellationCode: string,

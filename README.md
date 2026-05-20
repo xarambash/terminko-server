@@ -50,7 +50,8 @@ Protected routes require `Authorization: Bearer <token>` header.
 | GET appointments (guestId) | ✓ | — | — |
 | GET appointments (resourceId/date) | — | ✓ (own) | ✓ (all) |
 | POST appointments | ✓ | — | — |
-| PATCH appointments (cancel, guestId) | ✓ | — | — |
+| PATCH appointments/:id (cancel authenticated) | — | ✓ (own) | ✓ (all) |
+| PATCH appointments/cancel-by-code (guest) | ✓ | — | — |
 
 ### Tenants
 
@@ -71,6 +72,8 @@ Protected routes require `Authorization: Bearer <token>` header.
 
 - `GET /tenants/:tenantId/resources/:resourceId/services` – list services assigned to resource with prices (public, for guest booking)
 - `POST /tenants/:tenantId/resources/:resourceId/services` – assign service to resource (Owner only; body: serviceId, price, durationOverride?)
+- `PATCH /tenants/:tenantId/resources/:resourceId/services/:resourceServiceId` – update price or duration override (Owner only; body: `price?`, `durationOverride?` — set `durationOverride` to `null` to revert to service default; at least one field required)
+- `DELETE /tenants/:tenantId/resources/:resourceId/services/:resourceServiceId` – unassign service from resource (Owner only)
 
 ### Available Slots
 
@@ -86,7 +89,8 @@ Protected routes require `Authorization: Bearer <token>` header.
 ### Resource Free Days
 
 - `GET /tenants/:tenantId/resources/:resourceId/free-days` – list free days (Owner only)
-- `POST /tenants/:tenantId/resources/:resourceId/free-days` – add free day (Owner only; body: date "YYYY-MM-DD", reason?)
+- `POST /tenants/:tenantId/resources/:resourceId/free-days` – add free day or date range (Owner only; body: `start_date` "YYYY-MM-DD", `end_date?` "YYYY-MM-DD", `reason?`; overlapping ranges rejected with `409`)
+- `DELETE /tenants/:tenantId/resources/:resourceId/free-days/:freeDayId` – delete free day (Owner only)
 
 ### Guests
 
@@ -96,7 +100,8 @@ Protected routes require `Authorization: Bearer <token>` header.
 
 - `GET /tenants/:tenantId/appointments` – list appointments. Guest: `?guestId=` (no auth). Staff/Owner: `?resourceId?&date?` (auth; Staff sees only own resource).
 - `POST /tenants/:tenantId/appointments` – create appointment (public). Body: `resourceId`, `serviceId`, `guest: { name, email, phone }`, `startAt`, `endAt`; optional: `priceAtBooking`, `notes`. Guest is created if email does not exist in tenant.
-- `PATCH /tenants/:tenantId/appointments/:id` – cancel appointment (public). Body: `{ "guestId": "uuid" }`. Only the guest who booked can cancel (guestId must match).
+- `PATCH /tenants/:tenantId/appointments/:id` – cancel appointment (authenticated). Owner: cancels any appointment. Staff: cancels own resource's appointments only. No body required.
+- `PATCH /tenants/:tenantId/appointments/cancel-by-code` – cancel appointment (guest, no auth). Body: `{ "cancellationCode": "string" }`.
 
 ## Environment
 

@@ -108,7 +108,8 @@ model ResourceWorkingHour {
 model ResourceFreeDay {
   id         String   @id @default(uuid())
   resourceId String   @map("resource_id")
-  date       DateTime @db.Date
+  startDate  DateTime @db.Date @map("start_date")
+  endDate    DateTime @db.Date @map("end_date")
   reason     String?
   createdAt  DateTime @default(now()) @map("created_at")
 

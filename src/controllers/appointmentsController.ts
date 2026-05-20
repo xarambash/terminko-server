@@ -4,6 +4,7 @@ import {
   createAppointment,
   getAppointments,
   cancelAppointment,
+  cancelAppointmentAuthenticated,
   cancelAppointmentByCode,
 } from '../services/appointmentsService.js';
 import type { GetAppointmentsFilters } from '../types/appointments.js';
@@ -109,18 +110,38 @@ export async function cancelAppointmentHandler(req: Request, res: Response) {
     return;
   }
 
-  const parsed = cancelAppointmentSchema.safeParse(req.body);
-  if (!parsed.success) {
-    res.status(400).json({ error: 'Validation failed', details: parsed.error.flatten() });
-    return;
-  }
-
   try {
-    const appointment = await cancelAppointment(
-      appointmentIdStr,
-      tenantId,
-      parsed.data.cancellationCode
-    );
+    if (req.user?.role === 'owner') {
+      const appointment = await cancelAppointmentAuthenticated(appointmentIdStr, tenantId);
+      if (!appointment) {
+        res.status(404).json({ error: 'Appointment not found or already canceled' });
+        return;
+      }
+      res.json(appointment);
+      return;
+    }
+
+    if (req.user?.role === 'staff') {
+      if (!req.user.resourceId) {
+        res.status(403).json({ error: 'Staff account is not linked to a resource' });
+        return;
+      }
+      const appointment = await cancelAppointmentAuthenticated(appointmentIdStr, tenantId, req.user.resourceId);
+      if (!appointment) {
+        res.status(404).json({ error: 'Appointment not found or already canceled' });
+        return;
+      }
+      res.json(appointment);
+      return;
+    }
+
+    const parsed = cancelAppointmentSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: 'Validation failed', details: parsed.error.flatten() });
+      return;
+    }
+
+    const appointment = await cancelAppointment(appointmentIdStr, tenantId, parsed.data.cancellationCode);
     if (!appointment) {
       res.status(404).json({
         error: 'Appointment not found, already canceled, or cancellation code does not match',
