@@ -31,6 +31,9 @@ import authRoutes from './routes/authRoutes.js';
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+console.log('DATABASE_URL exists:', !!process.env.DATABASE_URL);
+console.log('DATABASE_URL starts with:', process.env.DATABASE_URL?.substring(0, 20));
+
 app.use(cors());
 app.use(express.json());
 app.use(morgan('dev'));
