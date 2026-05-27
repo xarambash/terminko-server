@@ -82,6 +82,15 @@ export async function login(data: LoginInput) {
     data: { lastLoginAt: new Date() },
   });
 
+  let profilePicture: string | null = null;
+  if (user.role === 'staff' && user.resourceId) {
+    const resource = await prisma.resource.findUnique({
+      where: { id: user.resourceId },
+      select: { profilePicture: true },
+    });
+    profilePicture = resource?.profilePicture ?? null;
+  }
+
   const payload = {
     userId: user.id,
     tenantId: user.tenantId,
@@ -101,6 +110,7 @@ export async function login(data: LoginInput) {
       role: user.role,
       tenantId: user.tenantId,
       resourceId: user.resourceId,
+      profilePicture,
     },
   };
 }
