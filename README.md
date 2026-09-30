@@ -4,6 +4,12 @@ Backend API for **Terminko**, a multi-tenant appointment scheduling platform
 for small businesses (salons, barbers, dentists). Serves a guest-facing mobile
 app (booking flow) and an owner/staff web dashboard.
 
+**Live API:** [terminko-server.onrender.com/health](https://terminko-server.onrender.com/health)
+
+> Hosted on Render's free tier. The service sleeps after 15 minutes of
+> inactivity, so the first request after a pause takes 30 to 60 seconds while
+> the instance wakes up.
+
 > **Part of the Terminko project:**
 > - 🖥️ **terminko-server**: REST API (this repo)
 > - 🌐 [terminko-manager](https://github.com/xarambash/terminko-manager): Web dashboard (owners & staff)
@@ -120,10 +126,10 @@ See [`docs/API.md`](./docs/API.md) for the full endpoint reference.
 ## What I'd do next
 
 - Automated tests (Vitest), starting with the available-slots algorithm and tenant-isolation middleware
-- Deploy a live demo (Render + Supabase) and link a public `GET /health` from this README
 - Rate limiting and request-size limits on public booking endpoints
 - OpenAPI spec generated from Zod schemas, with a hosted Swagger UI
 - Structured logging (pino) with request IDs
+- GitHub Actions CI (lint, type-check, test on every push)
 
 ## License
 

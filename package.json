@@ -2,7 +2,7 @@
   "type": "module",
   "name": "terminko-server",
   "version": "1.0.0",
-  "description": "Backend API for Terminko — a multi-tenant appointment scheduling platform for small businesses.",
+  "description": "Backend API for Terminko, a multi-tenant appointment scheduling platform for small businesses.",
   "main": "dist/index.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",
