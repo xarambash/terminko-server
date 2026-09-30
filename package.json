@@ -2,7 +2,7 @@
   "type": "module",
   "name": "terminko-server",
   "version": "1.0.0",
-  "description": "This is a server which will communicate with terminko_db and will server to the terminko-mobile and terminko-manger",
+  "description": "Backend API for Terminko — a multi-tenant appointment scheduling platform for small businesses.",
   "main": "dist/index.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",
@@ -19,7 +19,7 @@
     "url": "git+https://github.com/xarambash/terminko-server.git"
   },
   "author": "Stefan Rakonjac",
-  "license": "ISC",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/xarambash/terminko-server/issues"
   },

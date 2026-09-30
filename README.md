@@ -1,115 +1,134 @@
 # terminko-server
 
-Backend API for Terminko – a scheduling app for small businesses (salons, barbers, dentists). Supports multiple tenants with isolated data. Serves the guest mobile app (booking flow) and the owner/staff web app (management).
+Backend API for **Terminko**, a multi-tenant appointment scheduling platform
+for small businesses (salons, barbers, dentists). Serves a guest-facing mobile
+app (booking flow) and an owner/staff web dashboard.
 
-**Users:** Guests book without login; Owners and Staff log in to manage appointments, resources, and services.
+> **Part of the Terminko project:**
+> - 🖥️ **terminko-server**: REST API (this repo)
+> - 🌐 [terminko-manager](https://github.com/xarambash/terminko-manager): Web dashboard (owners & staff)
+> - 📱 [terminko-mobile](https://github.com/xarambash/terminko-mobile): Mobile app (guests)
 
-## Requirements
+---
 
-- Node.js 18+
-- npm
+## Highlights
 
-## Installation
-
-```bash
-npm install
-```
-
-## Scripts
-
-- `npm run dev` – development with auto-reload (port 5000)
-- `npm run build` – compile TypeScript to `dist/`
-- `npm run start` – run production build (run `npm run build` first)
-
-## API
-
-### Health
-
-- `GET /health` – health check (database connection)
-
-### Auth
-
-- `POST /auth/register` – register owner (body: tenantId, email, password, firstName, lastName)
-- `POST /auth/login` – login (body: tenantId or tenantSlug, email, password). Returns `{ token, user }`.
-
-Protected routes require `Authorization: Bearer <token>` header.
-
-### Access by role
-
-| Route | Guest | Staff | Owner |
-|-------|-------|-------|-------|
-| GET resources | ✓ | — | ✓ |
-| POST resources | — | — | ✓ |
-| GET resource services | ✓ | — | ✓ |
-| POST resource services | — | — | ✓ |
-| GET available slots | ✓ | ✓ (own) | ✓ |
-| GET working hours | — | ✓ (own) | ✓ |
-| POST working hours, Free days | — | — | ✓ |
-| Services | — | — | ✓ |
-| GET guests | — | — | ✓ |
-| GET appointments (guestId) | ✓ | — | — |
-| GET appointments (resourceId/date) | — | ✓ (own) | ✓ (all) |
-| POST appointments | ✓ | — | — |
-| PATCH appointments/:id (cancel authenticated) | — | ✓ (own) | ✓ (all) |
-| PATCH appointments/cancel-by-code (guest) | ✓ | — | — |
-
-### Tenants
-
-- `POST /tenants` – create tenant (MVP: public; production: Super Admin only)
-- `GET /tenants/:slug` – get tenant by slug (public)
-
-### Resources
-
-- `GET /tenants/:tenantId/resources` – list resources (public, for guest booking)
-- `POST /tenants/:tenantId/resources` – create resource (Owner only; creates Resource + User for staff login)
-
-### Services
-
-- `GET /tenants/:tenantId/services` – list services (Owner only)
-- `POST /tenants/:tenantId/services` – create service (Owner only)
-
-### Resource Services
-
-- `GET /tenants/:tenantId/resources/:resourceId/services` – list services assigned to resource with prices (public, for guest booking)
-- `POST /tenants/:tenantId/resources/:resourceId/services` – assign service to resource (Owner only; body: serviceId, price, durationOverride?)
-- `PATCH /tenants/:tenantId/resources/:resourceId/services/:resourceServiceId` – update price or duration override (Owner only; body: `price?`, `durationOverride?` — set `durationOverride` to `null` to revert to service default; at least one field required)
-- `DELETE /tenants/:tenantId/resources/:resourceId/services/:resourceServiceId` – unassign service from resource (Owner only)
-
-### Available Slots
-
-- `GET /tenants/:tenantId/resources/:resourceId/available-slots` – list available time slots for booking. Guest/Owner: any resource. Staff: own resource only. Query: `serviceId`, `date` (YYYY-MM-DD). Returns `[{ startAt, endAt }]` (ISO 8601).
-
-### Resource Working Hours
-
-- `GET /tenants/:tenantId/resources/:resourceId/working-hours` – list working hours (Owner: any resource; Staff: own resource only)
-- `POST /tenants/:tenantId/resources/:resourceId/working-hours` – add working hour (Owner only; body: dayOfWeek 0–6, startTime, endTime as "HH:MM"; multiple intervals per day allowed, overlaps rejected with `409`)
-- `PATCH /tenants/:tenantId/resources/:resourceId/working-hours/:workingHourId` – update working hour interval (Owner only; same body as POST; overlaps rejected with `409`)
-- `DELETE /tenants/:tenantId/resources/:resourceId/working-hours/:workingHourId` – delete working hour interval (Owner only)
-
-### Resource Free Days
-
-- `GET /tenants/:tenantId/resources/:resourceId/free-days` – list free days (Owner only)
-- `POST /tenants/:tenantId/resources/:resourceId/free-days` – add free day or date range (Owner only; body: `start_date` "YYYY-MM-DD", `end_date?` "YYYY-MM-DD", `reason?`; overlapping ranges rejected with `409`)
-- `DELETE /tenants/:tenantId/resources/:resourceId/free-days/:freeDayId` – delete free day (Owner only)
-
-### Guests
-
-- `GET /tenants/:tenantId/guests` – list guests (Owner only). Guests are created automatically when booking (see POST appointments).
-
-### Appointments
-
-- `GET /tenants/:tenantId/appointments` – list appointments. Guest: `?guestId=` (no auth). Staff/Owner: `?resourceId?&date?` (auth; Staff sees only own resource).
-- `POST /tenants/:tenantId/appointments` – create appointment (public). Body: `resourceId`, `serviceId`, `guest: { name, email, phone }`, `startAt`, `endAt`; optional: `priceAtBooking`, `notes`. Guest is created if email does not exist in tenant.
-- `PATCH /tenants/:tenantId/appointments/:id` – cancel appointment (authenticated). Owner: cancels any appointment. Staff: cancels own resource's appointments only. No body required.
-- `PATCH /tenants/:tenantId/appointments/cancel-by-code` – cancel appointment (guest, no auth). Body: `{ "cancellationCode": "string" }`.
-
-## Environment
-
-- `DATABASE_URL` – PostgreSQL connection string
-- `JWT_SECRET` – secret for JWT signing (required in production)
-- `PORT` – server port (default 5000)
+- **Multi-tenant by design**. Every resource is scoped to a `Tenant`, and middleware enforces isolation on every request.
+- **Role-based access control**. Three roles (Guest, Staff, Owner) enforced through composable Express middleware.
+- **Stateless JWT auth**. Token carries `{ userId, tenantId, resourceId, role }` so authorization decisions never hit the database.
+- **Available-slots algorithm** computes free time from per-day working intervals minus scheduled appointments, respecting per-service duration overrides.
+- **Working hours with multiple intervals per day** (for example 09:00 to 12:00 and 14:00 to 18:00), with overlap validation.
+- **Guest booking without registration**. Guests can cancel via a one-time cancellation code, or repeat-book against a persisted `guestId`.
 
 ## Tech stack
 
-- Node.js, Express, TypeScript
-- Prisma, PostgreSQL
+| Area           | Choice                                     |
+| -------------- | ------------------------------------------ |
+| Language       | TypeScript 5 (strict, ESM)                 |
+| Runtime        | Node.js 20+                                |
+| HTTP           | Express 5                                  |
+| ORM & DB       | Prisma 6, PostgreSQL                       |
+| Auth           | JSON Web Tokens (`jsonwebtoken`), bcrypt   |
+| Validation     | Zod                                        |
+| File storage   | Supabase Storage (profile pictures)        |
+| Email          | Nodemailer                                 |
+
+## Architecture
+
+```mermaid
+flowchart LR
+    Mobile["📱 terminko-mobile<br/>(guests)"] --> API
+    Manager["🌐 terminko-manager<br/>(owners & staff)"] --> API
+    API["🖥️ terminko-server<br/>Express + Prisma"] --> DB[("🐘 PostgreSQL")]
+```
+
+Three-layer structure: **`routes/` → `controllers/` → `services/`**. Routes
+mount handlers, controllers parse and validate, services hold business logic
+and Prisma queries. A single Prisma client instance lives in `src/db.ts`.
+
+## Domain model
+
+Ten Prisma models, grouped:
+
+| Group                 | Models                                                        |
+| --------------------- | ------------------------------------------------------------- |
+| Tenancy               | `Tenant`, `TenantSupportedLanguage`                           |
+| Identity              | `User` (owners & staff), `Guest`                              |
+| Scheduling primitives | `Resource`, `ResourceWorkingHour`, `ResourceFreeDay`          |
+| Catalog               | `Service`, `ResourceService` (join with price & duration)     |
+| Bookings              | `Appointment`                                                 |
+
+## Running locally
+
+### Requirements
+
+- Node.js 20+
+- npm
+- PostgreSQL (a free [Supabase](https://supabase.com/) project works out of the box)
+
+### Setup
+
+```bash
+git clone https://github.com/xarambash/terminko-server.git
+cd terminko-server
+npm install
+cp .env.example .env       # fill in the values
+npx prisma migrate deploy  # apply schema to your database
+npm run dev
+```
+
+The API runs on `http://localhost:5000`. Hit `GET /health` for a sanity check.
+
+### Environment variables
+
+| Variable                    | Purpose                                                  |
+| --------------------------- | -------------------------------------------------------- |
+| `DATABASE_URL`              | PostgreSQL connection string used by Prisma at runtime (pooled) |
+| `DIRECT_URL`                | Direct PostgreSQL URL used by Prisma migrations (bypasses pooler) |
+| `JWT_SECRET`                | Secret used to sign JWTs                                 |
+| `PORT`                      | HTTP port (default `5000`)                               |
+| `SUPABASE_URL`              | Supabase project URL (profile-picture storage)           |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase service-role key (profile-picture storage)      |
+
+### Scripts
+
+| Script          | What it does                                          |
+| --------------- | ----------------------------------------------------- |
+| `npm run dev`   | Start dev server with auto-reload (`tsx watch`)       |
+| `npm run build` | `prisma generate` + `tsc` + copy generated client     |
+| `npm run start` | Run the compiled build from `dist/`                   |
+
+## Project structure
+
+```
+src/
+├── routes/        # Express route mounts (one file per resource)
+├── controllers/   # request parsing, validation, response shaping
+├── services/      # business logic and Prisma queries
+├── middleware/    # auth, tenant scoping, request logging
+├── types/         # shared TypeScript types (auth payload, etc.)
+├── utils/         # validation helpers, Supabase client
+├── db.ts          # single Prisma client instance
+└── index.ts       # app assembly and middleware composition
+prisma/
+├── schema.prisma  # 10 models
+└── migrations/    # SQL migrations
+```
+
+See [`docs/API.md`](./docs/API.md) for the full endpoint reference.
+
+## What I'd do next
+
+- Automated tests (Vitest), starting with the available-slots algorithm and tenant-isolation middleware
+- Deploy a live demo (Render + Supabase) and link a public `GET /health` from this README
+- Rate limiting and request-size limits on public booking endpoints
+- OpenAPI spec generated from Zod schemas, with a hosted Swagger UI
+- Structured logging (pino) with request IDs
+
+## License
+
+[MIT](./LICENSE) © Stefan Rakonjac
+
+## Author
+
+**Stefan Rakonjac**, [@xarambash](https://github.com/xarambash)
