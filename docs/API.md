@@ -61,6 +61,9 @@ matches the URL `tenantId`.
   - `date` is `YYYY-MM-DD`
   - Returns `[{ startAt, endAt }]` in ISO 8601
   - Guest & Owner can request any resource. Staff can request only their own resource.
+  - Slot length is the resource `durationOverride`, or the service `durationMinutes` when no override is set.
+  - Starts are every 30 minutes, aligned to the clock (`09:00`, `09:30`, …), from the working-interval start rounded up to the next step.
+  - A start is omitted when the full duration does not fit before the interval ends, overlaps a `scheduled` appointment, or is already in the past.
 
 ## Working hours
 

@@ -1,5 +1,8 @@
 import { prisma } from '../db.js';
 
+/** Clock-aligned start interval. Service duration is separate and can be any length. */
+export const SLOT_START_STEP_MINUTES = 30;
+
 export type GetAvailableSlotsInput = {
   tenantId: string;
   resourceId: string;
@@ -10,6 +13,16 @@ export type GetAvailableSlotsInput = {
 export type TimeSlot = {
   startAt: string; // ISO 8601
   endAt: string; // ISO 8601
+};
+
+export type WorkingInterval = {
+  startTime: string;
+  endTime: string;
+};
+
+export type BusyInterval = {
+  startAt: Date;
+  endAt: Date;
 };
 
 function parseTimeToMinutes(time: string): number {
@@ -30,6 +43,60 @@ function slotsOverlap(
   appointmentEnd: Date
 ): boolean {
   return slotStart < appointmentEnd && slotEnd > appointmentStart;
+}
+
+function alignUpToStep(minutes: number, step: number): number {
+  const remainder = minutes % step;
+  return remainder === 0 ? minutes : minutes + (step - remainder);
+}
+
+/**
+ * Offers every clock-aligned start (09:00, 09:30, …) where the full service
+ * duration fits in a working interval and does not overlap a scheduled appointment.
+ * Starts that have already passed are omitted.
+ */
+export function buildAvailableSlots(input: {
+  date: string;
+  durationMinutes: number;
+  workingHours: WorkingInterval[];
+  appointments: BusyInterval[];
+  now?: Date;
+}): TimeSlot[] {
+  const { date, durationMinutes, workingHours, appointments } = input;
+  const now = input.now ?? new Date();
+
+  if (!Number.isFinite(durationMinutes) || durationMinutes <= 0) return [];
+
+  const slotsByStart = new Map<string, TimeSlot>();
+
+  for (const wh of workingHours) {
+    const intervalStart = parseTimeToMinutes(wh.startTime);
+    const intervalEnd = parseTimeToMinutes(wh.endTime);
+    if (intervalEnd <= intervalStart) continue;
+
+    for (
+      let currentMinutes = alignUpToStep(intervalStart, SLOT_START_STEP_MINUTES);
+      currentMinutes + durationMinutes <= intervalEnd;
+      currentMinutes += SLOT_START_STEP_MINUTES
+    ) {
+      const slotStart = createDateFromDateAndMinutes(date, currentMinutes);
+      const slotEnd = createDateFromDateAndMinutes(date, currentMinutes + durationMinutes);
+
+      if (slotStart.getTime() < now.getTime()) continue;
+
+      const overlaps = appointments.some((appointment) =>
+        slotsOverlap(slotStart, slotEnd, appointment.startAt, appointment.endAt)
+      );
+      if (overlaps) continue;
+
+      const startAt = slotStart.toISOString();
+      if (!slotsByStart.has(startAt)) {
+        slotsByStart.set(startAt, { startAt, endAt: slotEnd.toISOString() });
+      }
+    }
+  }
+
+  return [...slotsByStart.values()].sort((a, b) => a.startAt.localeCompare(b.startAt));
 }
 
 export async function getAvailableSlots(
@@ -86,39 +153,10 @@ export async function getAvailableSlots(
 
   if (relevantWorkingHours.length === 0) return [];
 
-  const slots: TimeSlot[] = [];
-
-  // A resource may have multiple intervals per day (e.g. 09:00–12:00 and 14:00–18:00 with a break). Each wh is one such interval.
-  for (const wh of relevantWorkingHours) {
-    const startMinutes = parseTimeToMinutes(wh.startTime);
-    const endMinutes = parseTimeToMinutes(wh.endTime);
-
-    let currentMinutes = startMinutes;
-
-    while (currentMinutes + durationMinutes <= endMinutes) {
-      // On first iteration, slotStart equals the resource's start time for this working interval (e.g. 09:00).
-      const slotStart = createDateFromDateAndMinutes(data.date, currentMinutes);
-      const slotEnd = createDateFromDateAndMinutes(
-        data.date,
-        currentMinutes + durationMinutes
-      );
-
-      const overlaps = appointments.some((a) =>
-        slotsOverlap(slotStart, slotEnd, a.startAt, a.endAt)
-      );
-
-      if (!overlaps) {
-        slots.push({
-          startAt: slotStart.toISOString(),
-          endAt: slotEnd.toISOString(),
-        });
-      }
-
-      currentMinutes += durationMinutes;
-    }
-  }
-
-  slots.sort((a, b) => a.startAt.localeCompare(b.startAt));
-
-  return slots;
+  return buildAvailableSlots({
+    date: data.date,
+    durationMinutes,
+    workingHours: relevantWorkingHours,
+    appointments,
+  });
 }

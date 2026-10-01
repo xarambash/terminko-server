@@ -22,7 +22,7 @@ app (booking flow) and an owner/staff web dashboard.
 - **Multi-tenant by design**. Every resource is scoped to a `Tenant`, and middleware enforces isolation on every request.
 - **Role-based access control**. Three roles (Guest, Staff, Owner) enforced through composable Express middleware.
 - **Stateless JWT auth**. Token carries `{ userId, tenantId, resourceId, role }` so authorization decisions never hit the database.
-- **Available-slots algorithm** computes free time from per-day working intervals minus scheduled appointments, respecting per-service duration overrides.
+- **Available-slots algorithm** offers a start every 30 minutes where the selected service duration fits in working hours and does not overlap a scheduled appointment. Duration overrides are respected.
 - **Working hours with multiple intervals per day** (for example 09:00 to 12:00 and 14:00 to 18:00), with overlap validation.
 - **Guest booking without registration**. Guests can cancel via a one-time cancellation code, or repeat-book against a persisted `guestId`.
 
